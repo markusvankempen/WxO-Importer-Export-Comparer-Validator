@@ -1,0 +1,5 @@
+# GitHub Ignore Config
+WxO/
+.env
+.DS_Store
+*.log
