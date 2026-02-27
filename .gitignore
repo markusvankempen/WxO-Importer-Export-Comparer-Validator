@@ -5,3 +5,4 @@ WxO/**/*
 .env
 .DS_Store
 *.log
+DISCOVERABILITY.md
