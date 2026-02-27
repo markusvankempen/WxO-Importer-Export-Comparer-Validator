@@ -1,0 +1,64 @@
+=== WXO System Comparison 2026-02-26T13:41:27 ===
+Systems: TZ1 vs TZ2
+
+  ═══════════════════════════════════════════════════════════════════════════════════
+  COMPARISON REPORT: TZ1  vs  TZ2
+  ═══════════════════════════════════════════════════════════════════════════════════
+
+  AGENTS
+  ─────────────────────────────────────────────────────────────────────────
+  NAME                                        TZ1       TZ2       DIFF
+  ─────────────────────────────────────────────────────────────────────────
+  askhr_agent                                 ✓       -         only TZ1
+  askorchestrate                              ✓       ✓       both
+  email_bamoe_processor                       ✓       ✓       both
+  kjhkj_937751                                ✓       -         only TZ1
+  markusmultitoolsagent                       -         ✓       only TZ2
+  markusmultitoolsagenttz1                    ✓       -         only TZ1
+  name_address_agent                          ✓       -         only TZ1
+  wxobuildertestagent                         ✓       ✓       both
+  ziptestagent                                ✓       -         only TZ1
+  ─────────────────────────────────────────────────────────────────────────
+
+  TOOLS
+  ─────────────────────────────────────────────────────────────────────────
+  NAME                                        TZ1       TZ2       DIFF
+  ─────────────────────────────────────────────────────────────────────────
+  bamoe_integration                           ✓       ✓       both
+  basic_auth_request                          ✓       ✓       both
+  call_bamoe_flow                             ✓       -         only TZ1
+  call_bamoe_flow_import_0                    -         ✓       only TZ2
+  dad_jokes_test_mm2tsewg                     ✓       -         only TZ1
+  email_triage                                ✓       ✓       both
+  format_address                              ✓       ✓       both
+  getcitytime                                 -         ✓       only TZ2
+  getcurrentweather                           -         ✓       only TZ2
+  getferryweather                             ✓       ✓       both
+  getrandomjoke                               -         ✓       only TZ2
+  i__get_flow_status_intrinsic_tool__         ✓       ✓       both
+  markus_artifacts_zip                        -         ✓       only TZ2
+  markus_artifacts_zip_fixed                  ✓       ✓       both
+  mvkweather                                  ✓       -         only TZ1
+  news_search                                 ✓       ✓       both
+  pto_balance                                 ✓       ✓       both
+  response_composer                           ✓       ✓       both
+  rest_countries                              ✓       ✓       both
+  searcheverything                            ✓       ✓       both
+  tz1                                         ✓       -         only TZ1
+  tz101                                       ✓       -         only TZ1
+  tz2                                         -         ✓       only TZ2
+  weather_tool                                ✓       -         only TZ1
+  world_time                                  ✓       ✓       both
+  ─────────────────────────────────────────────────────────────────────────
+
+  FLOWS
+  ─────────────────────────────────────────────────────────────────────────
+  NAME                                        TZ1       TZ2       DIFF
+  ─────────────────────────────────────────────────────────────────────────
+  name_address_form_flow                      ✓       ✓       both
+  ─────────────────────────────────────────────────────────────────────────
+
+  Legend: ✓ = present  |  - = absent  |  both = in both  |  only X = only in X
+  ═══════════════════════════════════════════════════════════════════════════════════
+
+

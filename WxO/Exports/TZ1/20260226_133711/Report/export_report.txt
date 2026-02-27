@@ -1,0 +1,33 @@
+=== Export Report 2026-02-26T13:37:45 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  EXPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS      ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      Dad_Jokes_Test_mm2tsewg               ✓ OK        70ebd810-bbf2-445d-862    (openapi)
+  Tool      MVKWeather                            ⊘ SKIPPED   cd609a58-721c-4fcb-8be    (catalog skill, no spec)
+  Tool      News_Search                           ⊘ SKIPPED   0e23b779-8c1f-4ca2-b97    (catalog skill, no spec)
+  Tool      REST_Countries                        ⊘ SKIPPED   a6ad8d75-760e-4495-bb4    (catalog skill, no spec)
+  Tool      TZ1                                   ✓ OK        63ed217b-fe94-49fa-805    (openapi)
+  Tool      TZ101                                 ✓ OK        ee019546-576b-43fb-89e    (openapi)
+  Tool      Weather_Tool                          ✓ OK        d7b7a913-145c-4f8c-9a0    (openapi)
+  Connection  WeatherAPI                            ✓ OK                                  (bundled with Weather_Tool)
+  Tool      World_Time                            ⊘ SKIPPED   e223456e-540c-41e2-bad    (catalog skill, no spec)
+  Tool      bamoe_integration                     ✓ OK        a647bb2e-8856-422c-92c    (python)
+  Tool      basic_auth_request                    ✓ OK        e60d0016-59aa-4f5a-a3c    (python)
+  Tool      call_bamoe_flow                       ✓ OK        ff6cc370-5985-4cbd-940    (python)
+  Tool      email_triage                          ✓ OK        02030cb1-08e8-48a3-862    (python)
+  Tool      format_address                        ✓ OK        a0712b8f-9547-4956-b59    (python)
+  Tool      i__get_flow_status_intrinsic_tool__   ⊘ SKIPPED   1b976619-d5b2-45d4-864    (intrinsic, platform-built)
+  Tool      markus_artifacts_zip_fixed            ✓ OK        b5319776-f380-48b8-8f3    (python)
+  Tool      name_address_form_flow                ✓ OK        e65b6cae-7936-4f40-bef    (flow)
+  Tool      pto_balance                           ✓ OK        d056694d-8b7e-40d2-8de    (python)
+  Tool      response_composer                     ✓ OK        8f66e489-f241-4a0f-abd    (python)
+  Tool      searchEverything                      ✓ OK        da584461-f767-42d9-9e9    (openapi)
+  Connection  NewsAPI                               ✓ OK                                  (bundled with searchEverythi
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 0 OK, ✗ 0 failed  |  tools: ✓ 14 OK, ✗ 0 failed  |  connections: ✓ 2 OK, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+

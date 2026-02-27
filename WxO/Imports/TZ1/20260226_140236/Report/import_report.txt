@@ -1,0 +1,26 @@
+=== Import Report 2026-02-26T14:03:03 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  IMPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS        ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      bamoe_integration                     ✓ OK          d7b1d47b-8700-4965-9b6    
+  Tool      basic_auth_request                    ⏭ SKIPPED     -                         already exists
+  Tool      call_bamoe_flow                       ✗ FAILED      -                         ╭─ Error ───────────────────
+  Tool      email_triage                          ⏭ SKIPPED     -                         already exists
+  Tool      format_addressv1                      ✓ OK          -                         
+  Tool      markus_artifacts_zip_fixed            ⏭ SKIPPED     -                         already exists
+  Tool      pto_balance                           ⏭ SKIPPED     -                         already exists
+  Tool      response_composer                     ⏭ SKIPPED     -                         already exists
+  Tool      Dad_Jokes_Test_mm2tsewg               ✓ OK          -                         
+  Tool      TZ1                                   ✓ OK          -                         
+  Tool      TZ101                                 ✓ OK          -                         
+  Connection  WeatherAPI                            ✓ OK          -                         
+  Tool      Weather_Tool                          ⏭ SKIPPED     -                         already exists
+  Tool      name_address_form_flow                ✓ OK          1f5130e8-b038-4273-acb    
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 0 OK, ⏭ 0 skipped, ✗ 0 failed  |  tools: ✓ 6 OK, ⏭ 6 skipped, ✗ 1 failed  |  connections: ✓ 1 OK, ⏭ 0 skipped, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+

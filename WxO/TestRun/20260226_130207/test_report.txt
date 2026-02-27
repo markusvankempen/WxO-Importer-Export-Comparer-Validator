@@ -1,0 +1,35 @@
+WxO Test Run — 2026-02-26T13:02:07-0500
+Source: TZ1  Target: TZ2  Mode: full
+────────────────────────────────────────────────────────────
+[13:02:07] --- EXPORT ---
+[13:02:08] RUN: export_tools_only
+[13:02:40] OK:  export_tools_only
+[13:02:41] RUN: export_connections
+[13:02:45] OK:  export_connections
+[13:02:45] RUN: export_agents_only
+[13:03:00] OK:  export_agents_only
+[13:03:00] RUN: export_flows_only
+[13:03:03] OK:  export_flows_only
+[13:03:03] --- IMPORT ---
+[13:03:04] RUN: import_tools_only
+[13:03:46] FAIL: import_tools_only (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:03:46] RUN: import_tools_with_conns
+[13:04:27] FAIL: import_tools_with_conns (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:04:27] RUN: import_connections
+[13:04:27] FAIL: import_connections (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:04:27] RUN: import_agents_only
+[13:04:27] FAIL: import_agents_only (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:04:27] RUN: import_if_exists_skip
+[13:04:54] FAIL: import_if_exists_skip (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:04:54] RUN: import_validate
+[13:04:54] FAIL: import_validate (see /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs/.log)
+[13:04:54] SKIP: import_tool_standalone (no Weather_Tool or quick mode)
+[13:04:54] RUN: compare_systems
+[13:05:03] OK:  compare_systems
+
+────────────────────────────────────────────────────────────
+Summary: 2 failure(s)
+Logs:    /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/logs
+Export:  /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/Exports/TZ1/
+
+[13:05:03] Done. Report: /Users/markusvankempen/projects/watson-orchestrate-builder/internal/WxO ImporterAndExport/WxO/TestRun/20260226_130207/test_report.txt

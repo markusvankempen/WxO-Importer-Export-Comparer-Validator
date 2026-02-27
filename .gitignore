@@ -1,5 +1,7 @@
 # GitHub Ignore Config
-WxO/
+WxO/**/*
+!WxO/**/
+!WxO/**/*report.txt
 .env
 .DS_Store
 *.log

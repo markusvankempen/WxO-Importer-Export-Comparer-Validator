@@ -1,0 +1,26 @@
+=== Import Report 2026-02-26T13:04:27 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  IMPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS        ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      bamoe_integration                     ✓ OK          24ebf20c-bf7a-4b89-95e    
+  Tool      basic_auth_request                    ✓ OK          90a0bd85-7dc6-4016-b33    
+  Tool      call_bamoe_flow                       ✗ FAILED      -                         ╭─ Error ───────────────────
+  Tool      email_triage                          ✓ OK          135907a8-f252-44d0-8ab    
+  Tool      format_address                        ✗ FAILED      -                         ╭─ Error ───────────────────
+  Tool      markus_artifacts_zip_fixed            ✓ OK          cc6a99a5-6a40-442f-96b    
+  Tool      pto_balance                           ✓ OK          92c57033-0b5a-442b-829    
+  Tool      response_composer                     ✓ OK          6120a1a4-2b86-411a-813    
+  Tool      Dad_Jokes_Test_mm2tsewg               ✓ OK          -                         
+  Tool      TZ1                                   ✓ OK          -                         
+  Tool      TZ101                                 ✓ OK          -                         
+  Connection  WeatherAPI                            ✓ OK          -                         
+  Tool      Weather_Tool                          ✓ OK          -                         
+  Tool      name_address_form_flow                ✓ OK          4bf209b3-2e38-47f9-9c0    
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 0 OK, ⏭ 0 skipped, ✗ 0 failed  |  tools: ✓ 11 OK, ⏭ 0 skipped, ✗ 2 failed  |  connections: ✓ 1 OK, ⏭ 0 skipped, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+

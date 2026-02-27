@@ -1,0 +1,38 @@
+=== Import Report 2026-02-26T14:29:29 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  IMPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS        ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      bamoe_integration                     ⏭ SKIPPED     -                         already exists
+  Tool      basic_auth_request                    ⏭ SKIPPED     -                         already exists
+  Tool      email_triage                          ⏭ SKIPPED     -                         already exists
+  Tool      format_address                        ⏭ SKIPPED     -                         already exists
+  Tool      markus_artifacts_zip_fixed            ⏭ SKIPPED     -                         already exists
+  Tool      pto_balance                           ⏭ SKIPPED     -                         already exists
+  Tool      response_composer                     ⏭ SKIPPED     -                         already exists
+  Connection  WeatherAPI                            ✓ OK          -                         
+  Tool      Weather_Tool                          ✓ OK          -                         
+  Tool      getCityTime                           ⏭ SKIPPED     -                         already exists
+  Connection  FerryWeather                          ✓ OK          -                         
+  Tool      getFerryWeather                       ⏭ SKIPPED     -                         already exists
+  Tool      getRandomJoke                         ⏭ SKIPPED     -                         already exists
+  Tool      name_address_form_flow                ⏭ SKIPPED     -                         already exists
+  Tool      pto_balance                           ⏭ SKIPPED     -                         already exists
+  Tool      markus_artifacts_zip_fixed            ⏭ SKIPPED     -                         already exists
+  Tool      Weather_Tool                          ✓ OK          -                         
+  Tool      markus_artifacts_zip_fixed            ⏭ SKIPPED     -                         already exists
+  Agent     AskHR_Agent                           ✓ OK          c2705a7c-eda2-4862-b32    
+  Agent     AskOrchestrate                        ⏭ SKIPPED     -                         already exists
+  Agent     MarkusMultiToolsAgentTZ1              ✓ OK          4b941674-1747-47b2-b2a    
+  Agent     WxoBuilderTestAgent                   ⏭ SKIPPED     -                         already exists
+  Agent     ZipTestAgent                          ✓ OK          de2cef2c-ac7e-467c-9c2    
+  Agent     email_bamoe_processor                 ⏭ SKIPPED     -                         already exists
+  Agent     kjhkj_937751                          ✓ OK          f28c3634-64f9-423f-813    
+  Agent     name_address_agent                    ✓ OK          ea86c0d5-45a0-40ec-b22    
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 5 OK, ⏭ 3 skipped, ✗ 0 failed  |  tools: ✓ 2 OK, ⏭ 14 skipped, ✗ 0 failed  |  connections: ✓ 2 OK, ⏭ 0 skipped, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+

@@ -1,0 +1,26 @@
+=== Import Report 2026-02-26T14:22:49 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  IMPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS        ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      bamoe_integration                     ⏭ SKIPPED     -                         already exists
+  Tool      basic_auth_request                    ⏭ SKIPPED     -                         already exists
+  Tool      email_triage                          ⏭ SKIPPED     -                         already exists
+  Tool      format_address                        ⏭ SKIPPED     -                         already exists
+  Tool      markus_artifacts_zip_fixed            ⏭ SKIPPED     -                         already exists
+  Tool      pto_balance                           ⏭ SKIPPED     -                         already exists
+  Tool      response_composer                     ⏭ SKIPPED     -                         already exists
+  Connection  WeatherAPI                            ✓ OK          -                         
+  Tool      Weather_Tool                          ✓ OK          -                         
+  Tool      getCityTime                           ✓ OK          8dc9138e-d169-43a8-867    
+  Connection  FerryWeather                          ✓ OK          -                         
+  Tool      getFerryWeather                       ⏭ SKIPPED     -                         already exists
+  Tool      getRandomJoke                         ⏭ SKIPPED     -                         already exists
+  Tool      name_address_form_flow                ✓ OK          06210d0f-80be-4d67-a1a    
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 0 OK, ⏭ 0 skipped, ✗ 0 failed  |  tools: ✓ 3 OK, ⏭ 9 skipped, ✗ 0 failed  |  connections: ✓ 2 OK, ⏭ 0 skipped, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+

@@ -1,0 +1,28 @@
+=== Export Report 2026-02-26T14:22:17 ===
+
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  EXPORT REPORT
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+  TYPE      NAME                                  STATUS      ID                        NOTES
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  Tool      Weather_Tool                          ✓ OK        d7b7a913-145c-4f8c-9a0    (openapi)
+  Connection  WeatherAPI                            ✓ OK                                  (bundled with Weather_Tool)
+  Tool      World_Time                            ⊘ SKIPPED   e223456e-540c-41e2-bad    (catalog skill, no spec)
+  Tool      bamoe_integration                     ✓ OK        d7b1d47b-8700-4965-9b6    (python)
+  Tool      basic_auth_request                    ✓ OK        e60d0016-59aa-4f5a-a3c    (python)
+  Tool      email_triage                          ✓ OK        02030cb1-08e8-48a3-862    (python)
+  Tool      format_address                        ✓ OK        7a4b9b42-cc51-4ca4-aad    (python)
+  Tool      getCityTime                           ✓ OK        23e1758d-046e-4c01-b94    (openapi)
+  Tool      getFerryWeather                       ✓ OK        c8894f91-04ad-40ee-81b    (openapi)
+  Connection  FerryWeather                          ✓ OK                                  (bundled with getFerryWeathe
+  Tool      getRandomJoke                         ✓ OK        969f1e52-bdaf-41be-8a8    (openapi)
+  Tool      i__get_flow_status_intrinsic_tool__   ⊘ SKIPPED   91d50403-881f-4654-aba    (intrinsic, platform-built)
+  Tool      markus_artifacts_zip_fixed            ✓ OK        b5319776-f380-48b8-8f3    (python)
+  Tool      name_address_form_flow                ✓ OK        1f5130e8-b038-4273-acb    (flow)
+  Tool      pto_balance                           ✓ OK        d056694d-8b7e-40d2-8de    (python)
+  Tool      response_composer                     ✓ OK        8f66e489-f241-4a0f-abd    (python)
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  SUMMARY:  agents: ✓ 0 OK, ✗ 0 failed  |  tools: ✓ 12 OK, ✗ 0 failed  |  connections: ✓ 2 OK, ✗ 0 failed
+  ═════════════════════════════════════════════════════════════════════════════════════════════
+
+
