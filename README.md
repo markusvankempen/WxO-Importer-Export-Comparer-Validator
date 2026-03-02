@@ -1,3 +1,8 @@
+> [!WARNING]
+> **This repository is DEPRECATED and no longer maintained.**  
+> Please use the new dedicated standalone repository instead:  
+> 👉 **[WxO-ToolBox-cli](https://github.com/markusvankempen/WxO-ToolBox-cli)** 👈
+
 # WxO Importer/Export/Comparer/Validator
 
 **Version:** 1.0.8
