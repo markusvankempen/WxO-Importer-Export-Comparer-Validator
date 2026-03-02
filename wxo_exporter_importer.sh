@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script: wxo_exporter_importer.sh
-# Version: 1.0.7
+# Version: 1.0.8
 # Author: Markus van Kempen <mvankempen@ca.ibm.com>, <markus.van.kempen@gmail.com>
 # Date: Feb 25, 2026
 #
@@ -22,11 +22,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-[[ -f "$SCRIPT_DIR/VERSION" ]] && WXO_VERSION=$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]') || WXO_VERSION="1.0.7"
+[[ -f "$SCRIPT_DIR/VERSION" ]] && WXO_VERSION=$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]') || WXO_VERSION="1.0.8"
 [[ " ${*} " = *" --version "* ]] || [[ " ${*} " = *" -v "* ]] && { echo "WxO Importer/Export/Comparer/Validator v${WXO_VERSION} by mvk"; exit 0; }
 
 # --- .env and paths ---
-ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../.env}"
+ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../../.env}"
+[[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/../../.env"
 [[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/.env"
 
 EXPORT_SCRIPT="$SCRIPT_DIR/export_from_wxo.sh"
@@ -408,7 +409,7 @@ _select_local_dir() {
         dt="${dt%/}"
         dt="$(basename "$dt")"
         [[ "$dt" == "Export" ]] && continue
-        [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/agents" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/tools" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/connections" ]] && datetimes+=("$dt")
+        [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/agents" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/tools" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/plugins" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/$dt/connections" ]] && datetimes+=("$dt")
       done
     fi
     if [[ ${#datetimes[@]} -eq 0 ]] && [[ -d "$base_dir/$CHOSEN_SYSTEM/Export" ]]; then
@@ -417,7 +418,7 @@ _select_local_dir() {
         [[ ! -d "$dt" ]] && continue
         dt="${dt%/}"
         dt="$(basename "$dt")"
-        [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/agents" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/tools" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/connections" ]] && datetimes+=("$dt")
+        [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/agents" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/tools" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/plugins" ]] || [[ -d "$base_dir/$CHOSEN_SYSTEM/Export/$dt/connections" ]] && datetimes+=("$dt")
       done
     fi
     if [[ ${#datetimes[@]} -gt 1 ]]; then
@@ -465,7 +466,7 @@ _select_local_dir() {
           [[ ! -d "$datetime" ]] && continue
           datetime="${datetime%/}"
           datetime="$(basename "$datetime")"
-          [[ -d "$exports_dir/$system/$datetime/agents" ]] || [[ -d "$exports_dir/$system/$datetime/tools" ]] || [[ -d "$exports_dir/$system/$datetime/connections" ]] && dirs+=("$exports_dir/$system/$datetime")
+          [[ -d "$exports_dir/$system/$datetime/agents" ]] || [[ -d "$exports_dir/$system/$datetime/tools" ]] || [[ -d "$exports_dir/$system/$datetime/plugins" ]] || [[ -d "$exports_dir/$system/$datetime/connections" ]] && dirs+=("$exports_dir/$system/$datetime")
         done
       done
     fi
@@ -480,7 +481,7 @@ _select_local_dir() {
         for datetime in "$legacy_base/$system/Export/"*/; do
           [[ ! -d "$datetime" ]] && continue
           datetime="${datetime%/}"
-          [[ -d "$datetime/agents" ]] || [[ -d "$datetime/tools" ]] || [[ -d "$datetime/connections" ]] && dirs+=("$legacy_base/$system/Export/$(basename "$datetime")")
+          [[ -d "$datetime/agents" ]] || [[ -d "$datetime/tools" ]] || [[ -d "$datetime/plugins" ]] || [[ -d "$datetime/connections" ]] && dirs+=("$legacy_base/$system/Export/$(basename "$datetime")")
         done
       done
     fi
@@ -493,7 +494,7 @@ _select_local_dir() {
       dir="${dir%/}"
       [[ "$dir" == *"/export_"* ]] && continue
       [[ -d "$dir/Export" ]] && continue
-      [[ -d "$dir/agents" ]] || [[ -d "$dir/tools" ]] || [[ -d "$dir/connections" ]] && dirs+=("$dir")
+      [[ -d "$dir/agents" ]] || [[ -d "$dir/tools" ]] || [[ -d "$dir/plugins" ]] || [[ -d "$dir/connections" ]] && dirs+=("$dir")
     done
 
     if [[ ${#dirs[@]} -gt 0 ]]; then
@@ -584,13 +585,15 @@ _fetch_tools() {
   if [[ -n "$first" ]] && ! echo "$first" | grep -qE '^[\[{]'; then
     raw=$(echo "$raw" | tail -n +2)
   fi
-  # Output: name|kind per line; kind = python|openapi|flow|langflow|skill|other
+  # Output: name|kind per line; kind = python|openapi|flow|langflow|plugin|skill|other
   local lines
   lines=$(echo "$raw" | jq -r '
     (if type == "array" then . else (.tools // .native // .data // .items) end) |
     if type == "array" then . else [] end |
     .[] | select(type == "object") |
-    (if .binding.python then "python"
+    ((.binding.python.type // .binding.python.kind // "") | if type == "string" then ascii_downcase else "" end) as $ptype |
+    (if ($ptype == "agent_pre_invoke" or $ptype == "agent_post_invoke") then "plugin"
+     elif .binding.python then "python"
      elif .binding.skill then "skill"
      elif .binding.openapi then "openapi"
      elif .binding.langflow then "langflow"
@@ -620,6 +623,8 @@ _fetch_tools() {
       t=$(echo "$t" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')
       if [[ "$t" == "flow" ]]; then
         [[ "$kind" == "flow" ]] || [[ "$kind" == "langflow" ]] && { kind_match=1; break; }
+      elif [[ "$t" == "plugin" ]]; then
+        [[ "$kind" == "plugin" ]] && { kind_match=1; break; }
       else
         [[ "$t" == "$kind" ]] && { kind_match=1; break; }
       fi
@@ -667,21 +672,22 @@ _export_options() {
   echo "  [1] Agents only (with optional tool/flow dependencies)"
   echo "  [2] Tools only (with bundled connections)"
   echo "  [3] Flows only (can include tools, agents, connections)"
-  echo "  [4] All — agents, tools, flows (dependencies included by default)"
-  echo "  [5] Connections only (live)"
+  echo "  [4] Plugins only (agent_pre/post_invoke)"
+  echo "  [5] All — agents, tools, flows (dependencies included by default)"
+  echo "  [6] Connections only (live)"
   echo "  [0] Back"
   echo ""
-  local what=$(_read_choice "Choose (0-5): " 5 1)
+  local what=$(_read_choice "Choose (0-6): " 6 1)
   if [[ "$what" -eq 0 ]]; then
     _breadcrumb_pop
     NAV_BACK=1
     return
   fi
 
-  local agent_filter="" tool_filter="" flow_filter="" connection_filter="" tool_type_filter=""
-  local agents_arr=() tools_arr=() flows_arr=() connections_arr=()
+  local agent_filter="" tool_filter="" flow_filter="" plugin_filter="" connection_filter="" tool_type_filter=""
+  local agents_arr=() tools_arr=() flows_arr=() plugins_arr=() connections_arr=()
 
-  if [[ "$what" -eq 1 ]] || [[ "$what" -eq 4 ]]; then
+  if [[ "$what" -eq 1 ]] || [[ "$what" -eq 5 ]]; then
     echo ""
     _print_header "Select agents to export"
     agents_arr=()
@@ -718,7 +724,7 @@ _export_options() {
     [[ "$deps" -eq 2 ]] && with_deps="--agent-only" || true
   fi
 
-  if [[ "$what" -eq 2 ]] || [[ "$what" -eq 4 ]]; then
+  if [[ "$what" -eq 2 ]] || [[ "$what" -eq 5 ]]; then
     echo ""
     _print_header "Which tool types to export?"
     echo "  [1] All types (Python, OpenAPI, Flow)"
@@ -800,7 +806,37 @@ _export_options() {
     fi
   fi
 
-  if [[ "$what" -eq 5 ]]; then
+  if [[ "$what" -eq 4 ]]; then
+    echo ""
+    _print_header "Select plugins to export"
+    plugins_arr=()
+    while IFS= read -r line; do [[ -n "$line" ]] && plugins_arr+=("$line"); done < <(_fetch_tools "plugin")
+    if [[ ${#plugins_arr[@]} -gt 0 ]]; then
+      local i=1
+      for p in "${plugins_arr[@]}"; do
+        echo "  [$i] $p"
+        ((i++))
+      done
+      echo ""
+      read -p "Enter numbers (comma/space-separated), 'all', or Enter for all: " choice
+      choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+      if [[ "$choice" == "all" ]] || [[ -z "${choice// }" ]]; then
+        plugin_filter=$(IFS=,; echo "${plugins_arr[*]}")
+      else
+        local sel=()
+        for num in $(echo "$choice" | tr ',' ' '); do
+          num=$(echo "$num" | tr -cd '0-9')
+          [[ -n "$num" ]] && [[ "$num" -ge 1 ]] && [[ "$num" -le ${#plugins_arr[@]} ]] && sel+=("${plugins_arr[$((num-1))]}")
+        done
+        [[ ${#sel[@]} -gt 0 ]] && plugin_filter=$(IFS=,; echo "${sel[*]}")
+      fi
+      [[ -n "$plugin_filter" ]] && echo "  Selected: $plugin_filter"
+    else
+      echo "  No plugins found in environment."
+    fi
+  fi
+
+  if [[ "$what" -eq 6 ]]; then
     echo ""
     _print_header "Select connections to export (live only)"
     connections_arr=()
@@ -847,13 +883,15 @@ _export_options() {
     1) EXPORT_ARGS="$EXPORT_ARGS --agents-only ${with_deps:-}" ;;
     2) EXPORT_ARGS="$EXPORT_ARGS --tools-only" ;;
     3) EXPORT_ARGS="$EXPORT_ARGS --flows-only" ;;
-    4) EXPORT_ARGS="$EXPORT_ARGS ${with_deps:-}" ;;
-    5) EXPORT_ARGS="$EXPORT_ARGS --connections-only" ;;
+    4) EXPORT_ARGS="$EXPORT_ARGS --plugins-only" ;;
+    5) EXPORT_ARGS="$EXPORT_ARGS ${with_deps:-}" ;;
+    6) EXPORT_ARGS="$EXPORT_ARGS --connections-only" ;;
   esac
   [[ -n "$agent_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --agent \"$agent_filter\"" || true
   [[ -n "$tool_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --tool \"$tool_filter\"" || true
   [[ -n "$tool_type_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --tool-type \"$tool_type_filter\"" || true
   [[ -n "$flow_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --tool \"$flow_filter\"" || true
+  [[ -n "$plugin_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --tool \"$plugin_filter\"" || true
   [[ -n "$connection_filter" ]] && EXPORT_ARGS="$EXPORT_ARGS --connection \"$connection_filter\"" || true
 
   local export_sel="" n
@@ -861,8 +899,9 @@ _export_options() {
     1) export_sel="Agents"; [[ -n "$agent_filter" ]] && { n=$(echo "$agent_filter" | awk -F',' '{print NF}'); export_sel="$export_sel ($n)"; } ;;
     2) export_sel="Tools"; [[ -n "$tool_filter" ]] && { n=$(echo "$tool_filter" | awk -F',' '{print NF}'); export_sel="$export_sel ($n)"; } ;;
     3) export_sel="Flows" ;;
-    4) export_sel="All" ;;
-    5) export_sel="Connections"; [[ -n "$connection_filter" ]] && { n=$(echo "$connection_filter" | awk -F',' '{print NF}'); export_sel="$export_sel ($n)"; } ;;
+    4) export_sel="Plugins"; [[ -n "$plugin_filter" ]] && { n=$(echo "$plugin_filter" | awk -F',' '{print NF}'); export_sel="$export_sel ($n)"; } ;;
+    5) export_sel="All" ;;
+    6) export_sel="Connections"; [[ -n "$connection_filter" ]] && { n=$(echo "$connection_filter" | awk -F',' '{print NF}'); export_sel="$export_sel ($n)"; } ;;
   esac
   _breadcrumb_set_selection "${export_sel:-Export}" 35
 }
@@ -875,17 +914,18 @@ _import_options() {
   echo "  [1] Agents (YAML only)"
   echo "  [2] Tools"
   echo "  [3] Flows"
-  echo "  [4] Connections"
+  echo "  [4] Plugins (from plugins/)"
+  echo "  [5] Connections"
   echo ""
   echo "  With Dependencies"
-  echo "  [5] Agents (+ bundled tools/flows)"
-  echo "  [6] Tools (+ bundled connections)"
-  echo "  [7] Flows (+ bundled connections)"
-  echo "  [8] Folder — all objects in directory"
+  echo "  [6] Agents (+ bundled tools/flows)"
+  echo "  [7] Tools (+ bundled connections)"
+  echo "  [8] Flows (+ bundled connections)"
+  echo "  [9] Folder — all objects in directory"
   echo ""
   echo "  [0] Back"
   echo ""
-  local what=$(_read_choice "Choose (0-8): " 8 1)
+  local what=$(_read_choice "Choose (0-9): " 9 1)
   if [[ "$what" -eq 0 ]]; then
     _breadcrumb_pop
     NAV_BACK=1
@@ -908,7 +948,7 @@ _import_options() {
   [[ "$if_exists" -eq 2 ]] && if_mode="skip"
 
   local validate_opt=""
-  if [[ "$what" -eq 1 ]] || [[ "$what" -eq 5 ]] || [[ "$what" -eq 8 ]]; then
+  if [[ "$what" -eq 1 ]] || [[ "$what" -eq 6 ]] || [[ "$what" -eq 9 ]]; then
     echo ""
     echo "  Validate imported agents after import? (orchestrate CLI invokes agents only, not flows/tools)"
     echo "  [1] No"
@@ -942,14 +982,15 @@ _import_options() {
     1) IMPORT_ARGS="$IMPORT_ARGS --agents-only --agent-only" ;;
     2) IMPORT_ARGS="$IMPORT_ARGS --tools-only" ;;
     3) IMPORT_ARGS="$IMPORT_ARGS --flows-only" ;;
-    4) IMPORT_ARGS="$IMPORT_ARGS --connections-only" ;;
-    5) IMPORT_ARGS="$IMPORT_ARGS --agents-only" ;;
-    6) IMPORT_ARGS="$IMPORT_ARGS --tools-only" ;;
-    7) IMPORT_ARGS="$IMPORT_ARGS --flows-only" ;;
-    8) IMPORT_ARGS="$IMPORT_ARGS --all" ;;  # Folder — agents, tools, flows, connections (whatever exists)
+    4) IMPORT_ARGS="$IMPORT_ARGS --plugins-only" ;;
+    5) IMPORT_ARGS="$IMPORT_ARGS --connections-only" ;;
+    6) IMPORT_ARGS="$IMPORT_ARGS --agents-only" ;;
+    7) IMPORT_ARGS="$IMPORT_ARGS --tools-only" ;;
+    8) IMPORT_ARGS="$IMPORT_ARGS --flows-only" ;;
+    9) IMPORT_ARGS="$IMPORT_ARGS --all" ;;  # Folder — agents, tools, flows, plugins, connections (whatever exists)
   esac
 
-  local import_labels=("" "Agents (no deps)" "Tools" "Flows" "Connections" "Agents (+ deps)" "Tools (+ conns)" "Flows (+ conns)" "Folder (all)")
+  local import_labels=("" "Agents (no deps)" "Tools" "Flows" "Plugins" "Connections" "Agents (+ deps)" "Tools (+ conns)" "Flows (+ conns)" "Folder (all)")
   _breadcrumb_set_selection "${import_labels[$what]}"
 }
 
@@ -1834,8 +1875,8 @@ main() {
       elif [[ "$ACTION" -eq 2 ]]; then
         _select_local_dir
         [[ "$NAV_BACK" -eq 1 ]] && { _breadcrumb_pop; continue; }
-        if [[ ! -d "$SYS_DIR" ]] || [[ ! -d "$SYS_DIR/agents" && ! -d "$SYS_DIR/tools" && ! -d "$SYS_DIR/flows" && ! -d "$SYS_DIR/connections" ]]; then
-          echo "Error: No agents/, tools/, flows/, or connections/ in $SYS_DIR"
+        if [[ ! -d "$SYS_DIR" ]] || [[ ! -d "$SYS_DIR/agents" && ! -d "$SYS_DIR/tools" && ! -d "$SYS_DIR/flows" && ! -d "$SYS_DIR/plugins" && ! -d "$SYS_DIR/connections" ]]; then
+          echo "Error: No agents/, tools/, flows/, plugins/, or connections/ in $SYS_DIR"
           exit 1
         fi
         _activate_environment

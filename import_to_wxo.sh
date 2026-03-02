@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script: import_to_wxo.sh
-# Version: 1.0.7
+# Version: 1.0.8
 # Author: Markus van Kempen <mvankempen@ca.ibm.com>, <markus.van.kempen@gmail.com>
 # Date: Feb 25, 2026
 #
@@ -19,13 +19,15 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../.env}"
+ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../../.env}"
+[[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/../../.env"
 [[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/.env"
 
 # --- Parse arguments ---
 IMPORT_AGENTS=true
 IMPORT_TOOLS=true
 IMPORT_FLOWS_ONLY=false   # when true (--flows-only): import only Flow tools
+IMPORT_PLUGINS_ONLY=false # when true (--plugins-only): import only Plugin tools from plugins/
 IMPORT_CONNECTIONS=false   # when true (--connections-only): import only live connections
 AGENT_ONLY=false          # when true (--agent-only): import agent YAML only, skip bundled tools/flows
 AGENT_FILTER=""
@@ -47,7 +49,8 @@ while [[ $# -gt 0 ]]; do
     --agent-only)    AGENT_ONLY=true; shift ;;
     --tools-only)    IMPORT_AGENTS=false; shift ;;
     --flows-only)    IMPORT_AGENTS=false; IMPORT_FLOWS_ONLY=true; shift ;;
-    --connections-only) IMPORT_AGENTS=false; IMPORT_TOOLS=false; IMPORT_FLOWS_ONLY=false; IMPORT_CONNECTIONS=true; shift ;;
+    --plugins-only)  IMPORT_AGENTS=false; IMPORT_TOOLS=false; IMPORT_PLUGINS_ONLY=true; shift ;;
+    --connections-only) IMPORT_AGENTS=false; IMPORT_TOOLS=false; IMPORT_FLOWS_ONLY=false; IMPORT_PLUGINS_ONLY=false; IMPORT_CONNECTIONS=true; shift ;;
     --all)              IMPORT_CONNECTIONS=true; shift ;;  # Import everything in folder (agents, tools, flows, connections)
     --agent)         AGENT_FILTER="$2"; [[ $# -ge 2 ]] && shift 2 || shift ;;
     --tool)          TOOL_FILTER="$2"; [[ $# -ge 2 ]] && shift 2 || shift ;;
@@ -62,20 +65,21 @@ while [[ $# -gt 0 ]]; do
     --validate)      VALIDATE=true; shift ;;
     --validate-with-source) VALIDATE=true; VALIDATE_SOURCE_ENV="${2:-}"; [[ $# -ge 2 ]] && shift 2 || shift ;;
     -v|--version)
-      echo "import_to_wxo.sh 1.0.7"
+      echo "import_to_wxo.sh 1.0.8"
       exit 0
       ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
-      echo "  WxO Importer/Export/Comparer/Validator — Import script v1.0.7"
+      echo "  WxO Importer/Export/Comparer/Validator — Import script v1.0.8"
       echo ""
       echo "Options:"
       echo "  --agents-only   Import only agents (and their tool dependencies)"
       echo "  --agent-only    With --agents-only: import agent YAML only (skip bundled tools/flows)"
       echo "  --tools-only    Import tools and flows from tools/ and flows/ (no agents, no connections)"
       echo "  --flows-only       Import only Flow tools (skip agents, Python, OpenAPI)"
+      echo "  --plugins-only    Import only Plugin tools from plugins/"
       echo "  --connections-only Import only live connections (skip agents, tools, flows)"
-      echo "  --all              Import everything in folder (agents, tools, flows, connections)"
+      echo "  --all              Import everything in folder (agents, tools, flows, plugins, connections)"
       echo "  --agent <name>  Import only the specified agent (and its deps)"
       echo "  --tool <name>      Import only the specified tool"
       echo "  --connection <id>  Import only the specified connection (app_id)"
@@ -254,17 +258,22 @@ BASE_DIR="${BASE_DIR:-.}"
 BASE_DIR="${BASE_DIR%/}"  # strip trailing slash
 TOOLS_DIR="$BASE_DIR/tools"
 FLOWS_DIR="$BASE_DIR/flows"
+PLUGINS_DIR="$BASE_DIR/plugins"
 AGENTS_DIR="$BASE_DIR/agents"
 
-# Validation: need tools or flows dir for top-level tools import; when --agent filter used, tools come from agent deps
+# Validation: need tools, flows, or plugins dir for top-level tools import; when --agent filter used, tools come from agent deps
 # When agents/ exists with bundled tools (agents/<name>/tools/), tools/ is optional — we import from agent deps
-if [[ "$IMPORT_TOOLS" == "true" ]] && [[ -z "$AGENT_FILTER" ]]; then
-  if [[ "$IMPORT_FLOWS_ONLY" == "true" ]]; then
-    [[ ! -d "$FLOWS_DIR" ]] && { echo "❌ Flows directory not found. Create: $FLOWS_DIR"; exit 1; }
-  else
-    if [[ ! -d "$TOOLS_DIR" ]] && [[ ! -d "$AGENTS_DIR" ]]; then
-      echo "❌ Tools directory not found. Create: $TOOLS_DIR (or export with agents to get agents/<name>/tools/)"
-      exit 1
+if [[ "$IMPORT_TOOLS" == "true" ]] || [[ "$IMPORT_PLUGINS_ONLY" == "true" ]]; then
+  if [[ -z "$AGENT_FILTER" ]]; then
+    if [[ "$IMPORT_PLUGINS_ONLY" == "true" ]]; then
+      [[ ! -d "$PLUGINS_DIR" ]] && { echo "❌ Plugins directory not found. Create: $PLUGINS_DIR"; exit 1; }
+    elif [[ "$IMPORT_FLOWS_ONLY" == "true" ]]; then
+      [[ ! -d "$FLOWS_DIR" ]] && { echo "❌ Flows directory not found. Create: $FLOWS_DIR"; exit 1; }
+    else
+      if [[ ! -d "$TOOLS_DIR" ]] && [[ ! -d "$AGENTS_DIR" ]]; then
+        echo "❌ Tools directory not found. Create: $TOOLS_DIR (or export with agents to get agents/<name>/tools/)"
+        exit 1
+      fi
     fi
   fi
 fi
@@ -279,8 +288,8 @@ if [[ "$IMPORT_AGENTS" == "true" ]] && [[ ! -d "$AGENTS_DIR" ]]; then
     exit 1
   fi
 fi
-if [[ "$IMPORT_TOOLS" != "true" ]] && [[ "$IMPORT_AGENTS" != "true" ]] && [[ "$IMPORT_CONNECTIONS" != "true" ]]; then
-  echo "❌ Use --agents-only, --tools-only, --flows-only, --connections-only, or omit for agents+tools."
+if [[ "$IMPORT_TOOLS" != "true" ]] && [[ "$IMPORT_AGENTS" != "true" ]] && [[ "$IMPORT_CONNECTIONS" != "true" ]] && [[ "$IMPORT_PLUGINS_ONLY" != "true" ]]; then
+  echo "❌ Use --agents-only, --tools-only, --flows-only, --plugins-only, --connections-only, or omit for agents+tools."
   exit 1
 fi
 if [[ "$IMPORT_CONNECTIONS" == "true" ]]; then
@@ -300,7 +309,7 @@ echo "  Watson Orchestrate — Import"
 echo "  ───────────────────────────"
 echo "  Source:   $BASE_DIR"
 [[ -n "$ENV_NAME" ]] && echo "  Env:      $ENV_NAME"
-echo "  Agents:   $IMPORT_AGENTS  |  Tools: $IMPORT_TOOLS  |  Connections: $IMPORT_CONNECTIONS  |  If exists: $IF_EXISTS"
+echo "  Agents:   $IMPORT_AGENTS  |  Tools: $IMPORT_TOOLS  |  Plugins: $IMPORT_PLUGINS_ONLY  |  Connections: $IMPORT_CONNECTIONS  |  If exists: $IF_EXISTS"
 [[ -n "$AGENT_FILTER" ]] && echo "  Filter:   agent=$AGENT_FILTER"
 [[ -n "$TOOL_FILTER" ]] && echo "  Filter:   tool=$TOOL_FILTER"
 [[ -n "$CONNECTION_FILTER" ]] && echo "  Filter:   connection=$CONNECTION_FILTER"
@@ -400,6 +409,39 @@ _patch_openapi_operation_descriptions() {
           .paths |= with_entries(.value |= (if type == "object" then with_entries(.value |= (if type == "object" then . + {summary: $sn} else . end)) else . end)) 
         ' "$spec" >"$tmp" 2>/dev/null && mv "$tmp" "$spec" || rm -f "$tmp"
       fi
+    fi
+  fi
+  return 0
+}
+
+# Resolve Python entry file for import, avoiding module/package name collision.
+# When the .py file has the same name as the tool dir (e.g. dad_joke_plugin/dad_joke_plugin.py),
+# the Orchestrate runtime can fail with "No module named 'X.X'; 'X' is not a package".
+# Fix: prefer <name>_tool.py if present, else create a temp copy with that name.
+# Sets globals: PY_IMPORT_DIR, PY_IMPORT_FILE, PY_IMPORT_CLEANUP (temp dir to rm, or empty)
+_resolve_python_entry() {
+  local subdir="$1" tool_name="$2" exclude="${3:-}"
+  local py_file req_file find_args
+  find_args=("$subdir" -maxdepth 1 -type f -name "*.py")
+  [[ -n "$exclude" ]] && find_args+=(! -name "$exclude")
+  py_file=$(find "${find_args[@]}" 2>/dev/null | head -1)
+  req_file="$subdir/requirements.txt"
+  [[ -z "$py_file" ]] || [[ ! -f "$req_file" ]] && return 1
+  local py_basename py_stem
+  py_basename=$(basename "$py_file")
+  py_stem="${py_basename%.py}"
+  PY_IMPORT_DIR="$subdir"
+  PY_IMPORT_FILE="$py_basename"
+  PY_IMPORT_CLEANUP=""
+  if [[ "$py_stem" == "$tool_name" ]]; then
+    if [[ -f "$subdir/${tool_name}_tool.py" ]]; then
+      PY_IMPORT_FILE="${tool_name}_tool.py"
+    else
+      PY_IMPORT_DIR=$(mktemp -d)
+      cp -r "$subdir"/* "$PY_IMPORT_DIR/"
+      cp "$py_file" "$PY_IMPORT_DIR/${tool_name}_tool.py"
+      PY_IMPORT_FILE="${tool_name}_tool.py"
+      PY_IMPORT_CLEANUP="$PY_IMPORT_DIR"
     fi
   fi
   return 0
@@ -557,9 +599,13 @@ _run_import() {
 # Skip when --agent <name>: only import that agent's deps from agents/<name>/tools/
 # =======================================================
 
-if [[ "$IMPORT_TOOLS" == "true" ]] && [[ -z "$AGENT_FILTER" ]]; then
-# --flows-only: import only from flows/; else import from tools/ and flows/
-if [[ "$IMPORT_FLOWS_ONLY" == "true" ]]; then
+if [[ "$IMPORT_TOOLS" == "true" ]] || [[ "$IMPORT_PLUGINS_ONLY" == "true" ]]; then
+if [[ -z "$AGENT_FILTER" ]]; then
+# --plugins-only: import only from plugins/; --flows-only: only from flows/; else tools/ and flows/
+if [[ "$IMPORT_PLUGINS_ONLY" == "true" ]]; then
+echo "  Plugins (from plugins/)"
+echo "  ───────────────────────"
+elif [[ "$IMPORT_FLOWS_ONLY" == "true" ]]; then
 echo "  Flows (from flows/)"
 echo "  ───────────────────"
 else
@@ -571,8 +617,22 @@ fi
 ENV_CONN_FILE=""
 [[ -n "$_conn_lookup" ]] && [[ -f "${WXO_ROOT}/Systems/${_conn_lookup}/Connections/.env_connection_${_conn_lookup}" ]] && ENV_CONN_FILE="${WXO_ROOT}/Systems/${_conn_lookup}/Connections/.env_connection_${_conn_lookup}"
 
-# 1. Python tools at top level (tools/*.py) — skip when --flows-only
-if [[ "$IMPORT_FLOWS_ONLY" != "true" ]]; then
+# 0. Plugin tools (plugins/<name>/) — when --plugins-only or when importing all (plugins/ exists)
+if [[ -d "$PLUGINS_DIR" ]] && ([[ "$IMPORT_PLUGINS_ONLY" == "true" ]] || ([[ "$IMPORT_TOOLS" == "true" ]] && [[ "$IMPORT_FLOWS_ONLY" != "true" ]])); then
+for SUBDIR in "$PLUGINS_DIR"/*/; do
+  [ -d "$SUBDIR" ] || continue
+  TOOL_NAME=$(basename "$SUBDIR")
+  _matches_filter "$TOOL_NAME" "$TOOL_FILTER" || continue
+  if _resolve_python_entry "$SUBDIR" "$TOOL_NAME"; then
+    echo "  → $TOOL_NAME (plugin)"
+    _run_import "$TOOL_NAME" "Tool" "(cd \"$PY_IMPORT_DIR\" && orchestrate tools import -k python -p . -f \"$PY_IMPORT_FILE\" -r requirements.txt)"
+    [[ -n "$PY_IMPORT_CLEANUP" ]] && rm -rf "$PY_IMPORT_CLEANUP"
+  fi
+done
+fi
+
+# 1. Python tools at top level (tools/*.py) — skip when --flows-only or --plugins-only
+if [[ "$IMPORT_FLOWS_ONLY" != "true" ]] && [[ "$IMPORT_PLUGINS_ONLY" != "true" ]]; then
 for TOOL_FILE in "$TOOLS_DIR"/*.py; do
   [ -f "$TOOL_FILE" ] || continue
   TOOL_STEM=$(basename "$TOOL_FILE" .py)
@@ -581,22 +641,23 @@ for TOOL_FILE in "$TOOLS_DIR"/*.py; do
   _run_import "$TOOL_STEM" "Tool" "orchestrate tools import -k python -p \"$TOOLS_DIR\" -f \"$(basename "$TOOL_FILE")\" -r requirements.txt"
 done
 
-# 2. Python tools in subdirs (from export: tools/<name>/ with *.py, requirements.txt)
+# 2. Python tools in subdirs (from export: tools/<name>/ with *.py, requirements.txt) — skip when --plugins-only
+if [[ "$IMPORT_PLUGINS_ONLY" != "true" ]]; then
 for SUBDIR in "$TOOLS_DIR"/*/; do
   [ -d "$SUBDIR" ] || continue
   TOOL_NAME=$(basename "$SUBDIR")
   _matches_filter "$TOOL_NAME" "$TOOL_FILTER" || continue
-  PY_FILE=$(find "$SUBDIR" -maxdepth 1 -type f -name "*.py" 2>/dev/null | head -1)
-  REQ_FILE="$SUBDIR/requirements.txt"
-  if [[ -n "$PY_FILE" && -f "$REQ_FILE" ]]; then
+  if _resolve_python_entry "$SUBDIR" "$TOOL_NAME"; then
     echo "  → $TOOL_NAME (python)"
-    _run_import "$TOOL_NAME" "Tool" "(cd \"$SUBDIR\" && orchestrate tools import -k python -p . -f \"$(basename "$PY_FILE")\" -r requirements.txt)"
+    _run_import "$TOOL_NAME" "Tool" "(cd \"$PY_IMPORT_DIR\" && orchestrate tools import -k python -p . -f \"$PY_IMPORT_FILE\" -r requirements.txt)"
+    [[ -n "$PY_IMPORT_CLEANUP" ]] && rm -rf "$PY_IMPORT_CLEANUP"
   fi
 done
 fi
+fi
 
-# 3. OpenAPI tools in subdirs (tools/<name>/) — skip when --flows-only
-if [[ "$IMPORT_FLOWS_ONLY" != "true" ]]; then
+# 3. OpenAPI tools in subdirs (tools/<name>/) — skip when --flows-only or --plugins-only
+if [[ "$IMPORT_FLOWS_ONLY" != "true" ]] && [[ "$IMPORT_PLUGINS_ONLY" != "true" ]]; then
 for SUBDIR in "$TOOLS_DIR"/*/; do
   [ -d "$SUBDIR" ] || continue
   TOOL_NAME=$(basename "$SUBDIR")
@@ -632,8 +693,8 @@ for SUBDIR in "$TOOLS_DIR"/*/; do
 done
 fi
 
-# 4. Flow tools in tools/<name>/ (legacy — flows from older exports)
-if [[ "$IMPORT_FLOWS_ONLY" != "true" ]] && [[ -d "$TOOLS_DIR" ]]; then
+# 4. Flow tools in tools/<name>/ (legacy — flows from older exports) — skip when --plugins-only
+if [[ "$IMPORT_FLOWS_ONLY" != "true" ]] && [[ "$IMPORT_PLUGINS_ONLY" != "true" ]] && [[ -d "$TOOLS_DIR" ]]; then
 for SUBDIR in "$TOOLS_DIR"/*/; do
   [ -d "$SUBDIR" ] || continue
   TOOL_NAME=$(basename "$SUBDIR")
@@ -655,8 +716,8 @@ for SUBDIR in "$TOOLS_DIR"/*/; do
 done
 fi
 
-# 5. Flow tools in flows/<name>/ (primary location for flow exports)
-if [[ -d "$FLOWS_DIR" ]]; then
+# 5. Flow tools in flows/<name>/ (primary location for flow exports) — skip when --plugins-only
+if [[ "$IMPORT_PLUGINS_ONLY" != "true" ]] && [[ -d "$FLOWS_DIR" ]]; then
 for SUBDIR in "$FLOWS_DIR"/*/; do
   [ -d "$SUBDIR" ] || continue
   TOOL_NAME=$(basename "$SUBDIR")
@@ -672,6 +733,7 @@ done
 fi
 
 echo ""
+fi
 fi
 
 # =======================================================
@@ -696,16 +758,15 @@ for AGENT_SUBDIR in "$AGENTS_DIR"/*/; do
     TOOL_NAME=$(basename "$TOOL_DIR")
 
     # Python: *.py + requirements.txt (exclude __init__.py — it's not the main module)
-    PY_FILE=$(find "$TOOL_DIR" -maxdepth 1 -type f -name "*.py" ! -name "__init__.py" 2>/dev/null | head -1)
-    REQ_FILE="$TOOL_DIR/requirements.txt"
-    if [[ -n "$PY_FILE" && -f "$REQ_FILE" ]]; then
+    if _resolve_python_entry "$TOOL_DIR" "$TOOL_NAME" "__init__.py"; then
       echo "  → $TOOL_NAME (python, agent dep)"
       # Run from inside tool dir. Hide __init__.py if it imports wrong name (e.g. pto_tool when function is pto_balance)
       _init="$TOOL_DIR/__init__.py"
       _init_bak="${_init}.import_bak"
       [[ -f "$_init" ]] && mv "$_init" "$_init_bak" 2>/dev/null || true
-      _run_import "$TOOL_NAME" "Tool" "(cd \"$TOOL_DIR\" && orchestrate tools import -k python -p . -f \"$(basename "$PY_FILE")\" -r requirements.txt)"
+      _run_import "$TOOL_NAME" "Tool" "(cd \"$PY_IMPORT_DIR\" && orchestrate tools import -k python -p . -f \"$PY_IMPORT_FILE\" -r requirements.txt)"
       [[ -f "$_init_bak" ]] && mv "$_init_bak" "$_init" 2>/dev/null || true
+      [[ -n "$PY_IMPORT_CLEANUP" ]] && rm -rf "$PY_IMPORT_CLEANUP"
       continue
     fi
 

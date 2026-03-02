@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script: compare_wxo_systems.sh
-# Version: 1.0.7
+# Version: 1.0.8
 # Author: Markus van Kempen <mvankempen@ca.ibm.com>, <markus.van.kempen@gmail.com>
 # Date: Feb 25, 2026
 #
@@ -22,7 +22,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WXO_ROOT="${WXO_ROOT:-$SCRIPT_DIR/WxO}"
-ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../.env}"
+ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../../.env}"
+[[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/../../.env"
 [[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/.env"
 REPORT_FILE=""
 
@@ -38,12 +39,12 @@ while [[ $# -gt 0 ]]; do
     -o|--output)   REPORT_FILE="$2"; AUTO_REPORT=false; [[ $# -ge 2 ]] && shift 2 || shift ;;
     --env-file)    ENV_FILE="$2"; [[ $# -ge 2 ]] && shift 2 || shift ;;
     -v|--version)
-      echo "compare_wxo_systems.sh 1.0.7"
+      echo "compare_wxo_systems.sh 1.0.8"
       exit 0
       ;;
     -h|--help)
       echo "Usage: $0 [ENV1] [ENV2] [OPTIONS]"
-      echo "  WxO Importer/Export/Comparer/Validator — Compare script v1.0.7"
+      echo "  WxO Importer/Export/Comparer/Validator — Compare script v1.0.8"
       echo ""
       echo ""
       echo "Compare agents, tools, and flows between two WXO environments."

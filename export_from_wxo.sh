@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script: export_from_wxo.sh
-# Version: 1.0.7
+# Version: 1.0.8
 # Author: Markus van Kempen <mvankempen@ca.ibm.com>, <markus.van.kempen@gmail.com>
 # Date: Feb 25, 2026
 #
@@ -19,7 +19,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../.env}"
+ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../../../.env}"
+[[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/../../.env"
 [[ ! -f "$ENV_FILE" ]] && ENV_FILE="$SCRIPT_DIR/.env"
 [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE" 2>/dev/null || true; set +a; }
 
@@ -28,6 +29,7 @@ EXPORT_AGENTS_WITH_DEPS=true   # default: include tools/flows with each agent
 EXPORT_AGENTS=true
 EXPORT_TOOLS=true
 FLOWS_ONLY=false              # when true (--flows-only): export only Flow tools
+PLUGINS_ONLY=false            # when true (--plugins-only): export only Plugin tools (agent_pre/post_invoke)
 EXPORT_CONNECTIONS=false      # when true (--connections-only): export live connections only
 OUTPUT_DIR=""
 ENV_NAME=""
@@ -45,7 +47,8 @@ while [[ $# -gt 0 ]]; do
         --agents-only)   EXPORT_TOOLS=false; shift ;;
         --tools-only)    EXPORT_AGENTS=false; shift ;;
         --flows-only)    EXPORT_AGENTS=false; FLOWS_ONLY=true; shift ;;
-        --connections-only) EXPORT_AGENTS=false; EXPORT_TOOLS=false; FLOWS_ONLY=false; EXPORT_CONNECTIONS=true; shift ;;
+        --plugins-only)  EXPORT_AGENTS=false; PLUGINS_ONLY=true; shift ;;
+        --connections-only) EXPORT_AGENTS=false; EXPORT_TOOLS=false; FLOWS_ONLY=false; PLUGINS_ONLY=false; EXPORT_CONNECTIONS=true; shift ;;
         -o|--output-dir) OUTPUT_DIR="${2:-}"; [[ $# -ge 2 ]] && shift 2 || shift ;;
         --env-name)      ENV_NAME="${2:-}"; [[ $# -ge 2 ]] && shift 2 || shift ;;
         --agent)         AGENT_FILTER="${2:-}"; [[ $# -ge 2 ]] && shift 2 || shift ;;
@@ -61,13 +64,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
-            echo "  WxO Importer/Export/Comparer/Validator — Export script v1.0.7"
+            echo "  WxO Importer/Export/Comparer/Validator — Export script v1.0.8"
             echo ""
             echo "Options:"
             echo "  --agent-only    Export agents without their tool/flow dependencies (YAML only)"
             echo "  --agents-only   Export only agents (skip tools)"
             echo "  --tools-only    Export only tools (skip agents)"
             echo "  --flows-only        Export only Flow tools (skip agents, Python, OpenAPI)"
+            echo "  --plugins-only      Export only Plugin tools (agent_pre/post_invoke)"
             echo "  --connections-only  Export only live connections (skip agents, tools, flows)"
             echo "  -o, --output-dir <dir>  Output base dir (with --env-name) or exact path"
             echo "  --env-name <name>       Use <System>/Export/<DateTime>/ structure"
@@ -326,9 +330,10 @@ fi
 if [[ "$EXPORT_TOOLS" == "true" ]]; then
 echo "  Fetching tools..."
 
-# Ensure tools and flows directories exist (flows for flow/langflow tools)
+# Ensure tools, flows, and plugins directories exist
 mkdir -p "$OUTPUT_DIR/tools"
 mkdir -p "$OUTPUT_DIR/flows"
+mkdir -p "$OUTPUT_DIR/plugins"
 
 TOOL_LIST_JSON=$(orchestrate tools list -v 2>&1) || {
     echo "Failed to run 'orchestrate tools list -v'."
@@ -340,8 +345,9 @@ TOOL_LIST_JSON=$(orchestrate tools list -v 2>&1) || {
 }
 
 # Extract tool name|kind|id from JSON
-# Output: "name|kind|id" per line; kind = python | openapi | flow | langflow | skill | other
+# Output: "name|kind|id" per line; kind = python | openapi | flow | langflow | plugin | skill | other
 # .binding.skill = catalog skill (IBM prebuilt, not exportable)
+# .binding.python.type = agent_pre_invoke | agent_post_invoke => plugin
 # .binding.flow, .binding.langflow = flow tools
 TOOL_ENTRIES=$(echo "$TOOL_LIST_JSON" | jq -r '
   (if type == "array" then . else (.tools // .native // .agents // .data // .items) end) |
@@ -349,7 +355,9 @@ TOOL_ENTRIES=$(echo "$TOOL_LIST_JSON" | jq -r '
   .[] | select(type == "object") |
   (.name // .id) as $n |
   ((.id // ._id // "") | tostring) as $id |
-  (if .binding.python then "python"
+  ((.binding.python.type // .binding.python.kind // "") | if type == "string" then ascii_downcase else "" end) as $ptype |
+  (if ($ptype == "agent_pre_invoke" or $ptype == "agent_post_invoke") then "plugin"
+   elif .binding.python then "python"
    elif .binding.skill then "skill"
    elif .binding.openapi then "openapi"
    elif .binding.langflow then "langflow"
@@ -373,6 +381,7 @@ echo ""
 while IFS='|' read -r TOOL KIND TOOL_ID; do
     [[ -z "$TOOL" ]] && continue
     [[ "$FLOWS_ONLY" == "true" ]] && [[ "$KIND" != "flow" ]] && [[ "$KIND" != "langflow" ]] && continue
+    [[ "$PLUGINS_ONLY" == "true" ]] && [[ "$KIND" != "plugin" ]] && continue
     if [[ "$TOOL" == *intrinsic* ]]; then
         echo "  ⊘ $TOOL ($KIND) — intrinsic (skipped, not exportable)"
         _record_export "Tool" "$TOOL" "SKIPPED" "$TOOL_ID" "(intrinsic, platform-built)"
@@ -399,6 +408,8 @@ while IFS='|' read -r TOOL KIND TOOL_ID; do
     fi
     if [[ "$KIND" == "flow" ]] || [[ "$KIND" == "langflow" ]]; then
         TOOL_SUBDIR="flows"
+    elif [[ "$KIND" == "plugin" ]]; then
+        TOOL_SUBDIR="plugins"
     else
         TOOL_SUBDIR="tools"
     fi
