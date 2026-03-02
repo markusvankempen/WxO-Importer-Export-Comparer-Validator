@@ -1,6 +1,6 @@
 # WxO Importer/Export/Comparer/Validator
 
-**Version:** 1.0.7
+**Version:** 1.0.8
 
 ---
 
@@ -14,7 +14,7 @@ Run the interactive menu: `./wxo_exporter_importer.sh` (see [Quick start](#quick
 
 | Feature | What it does |
 |---------|--------------|
-| **Export** | Pull agents, tools, flows, connections to local (agents only, tools only, flows only, connections only, or all with dependencies) |
+| **Export** | Pull agents, tools, flows, plugins, connections to local (agents only, tools only, flows only, plugins only, connections only, or all with dependencies) |
 | **Import** | Push from local exports or Replicate folders into any target environment |
 | **Compare** | Diff agents, tools, and flows between two WXO environments |
 | **Validate** | Invoke agents with a test prompt; optionally compare responses between systems |
@@ -22,6 +22,8 @@ Run the interactive menu: `./wxo_exporter_importer.sh` (see [Quick start](#quick
 | **Danger Zone** | Delete agents, tools, flows, or connections (requires typing DELETE to confirm) |
 
 **Author:** Markus van Kempen · mvankempen@ca.ibm.com · markus.van.kempen@gmail.com
+
+**Related:** [**wxo-toolkit-vsc**](https://github.com/markusvankempen/wxo-toolkit-vsc) — VS Code extension that bundles these CLI scripts and provides a webview UI for Export, Import, Compare, Replicate.
 
 ---
 
@@ -72,11 +74,16 @@ Inspired by **Ajit Kulkarni** <ajit.kulkarni2@ibm.com>.
 cp .env.example .env
 # Edit .env with your WXO_URL_<ENV> and WXO_API_KEY_<ENV>
 
-chmod +x wxo_exporter_importer.sh export_from_wxo.sh import_to_wxo.sh compare_wxo_systems.sh
+chmod +x wxo_exporter_importer.sh export_from_wxo.sh import_to_wxo.sh compare_wxo_systems.sh setup_dependencies.sh
+./setup_dependencies.sh --install   # check/install orchestrate CLI, jq, unzip
 ./wxo_exporter_importer.sh
 ```
 
 **End-user guide:** See [USER_GUIDE.md](USER_GUIDE.md) for step-by-step instructions, UI walkthrough, and options for all use cases (Export, Import, Compare, Validate, Replicate).
+
+**Validation guide:** See [VALIDATION_GUIDE.md](VALIDATION_GUIDE.md) for testing TZ1 ↔ TZ2 and running all CLI options.
+
+**VS Code extension:** [**wxo-toolkit-vsc**](https://github.com/markusvankempen/wxo-toolkit-vsc) — a standalone extension that bundles these CLI scripts and provides a webview UI. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=markusvankempen.wxo-toolkit-vsc) or build from `vscode-extension/` in this repo. See [WxO-ADK-vscode-extension.md](WxO-ADK-vscode-extension.md).
 
 **Version:** Run `./wxo_exporter_importer.sh --version` or check [VERSION](VERSION). See [CHANGELOG.md](CHANGELOG.md) for release history.
 
@@ -93,8 +100,9 @@ flowchart TB
             E1["agents/"]
             E2["tools/"]
             E3["flows/"]
-            E4["connections/"]
-            E5["Report/export_report.txt"]
+            E4["plugins/"]
+            E5["connections/"]
+            E6["Report/export_report.txt"]
         end
         subgraph Imports["Imports/TargetEnv/DateTime/"]
             I1["Report/import_report.txt"]
@@ -132,6 +140,7 @@ WxO/
 │           ├── agents/
 │           ├── tools/
 │           ├── flows/
+│           ├── plugins/
 │           └── Report/
 │               └── export_report.txt
 ├── Imports/
@@ -164,6 +173,8 @@ WxO/
 
 Use `--env-name <System>` when exporting to create `WxO/Exports/<System>/<DateTime>/`. Without it, exports go to flat dirs like `export_<hostname>_<timestamp>`.
 
+**Note:** `Exports/`, `Imports/`, `TestRun/`, `Compare/`, `Validate/`, `Replicate/`, `Delete/`, and `logs/` are listed in the repo `.gitignore` — they contain generated outputs and are not committed.
+
 **Connection secrets:** When exporting connections, the script also creates `WxO/Systems/<System>/Connections/` with a `connection_secrets_report.txt` (lists required env vars per connection) and `.env_connection_<System>` (template). Fill in the template before import; the import script reads it and runs `orchestrate connections set-credentials` so connections become fully active.
 
 **Backward compatibility:** The interactive script still reads from legacy `WxOExports/<System>/Export/<DateTime>/` when present.
@@ -187,7 +198,7 @@ cp .env.example .env
 | `WXO_ROOT` | Override WxO output dir | `WXO_ROOT=/path/to/WxO` |
 | `ENV_FILE` | Override .env path | `ENV_FILE=/path/to/.env` (env var when running scripts) |
 
-**Where scripts look for .env:** `<project_root>/.env` or `<script_dir>/.env`. Override with `ENV_FILE=/path/to/.env ./wxo_exporter_importer.sh`.
+**Where scripts look for .env:** (in order) `watson-orchestrate-builder/.env`, `watsonx-orchestrate-devkit/.env`, `wxo-toolkit/.env`. Override with `ENV_FILE=/path/to/.env ./wxo_exporter_importer.sh`.
 
 **Add new environment:** When adding via the interactive menu, the script prefills from `.env` if `WXO_URL_<name>` and `WXO_API_KEY_<name>` exist. Otherwise it prompts.
 
@@ -215,13 +226,14 @@ cp .env.example .env
 Imports agents, tools, and flows from local exports into a target WXO environment:
 
 - **Python tools** from `tools/<name>/*.py` + `requirements.txt`
+- **Plugin tools** from `plugins/<name>/*.py` + `requirements.txt` (agent_pre/post_invoke)
 - **OpenAPI tools** from `tools/<name>/skill_v2.json` or `openapi.json`
 - **Flow tools** from `flows/<name>/*.json` (or legacy `tools/<name>/*.json`); flows can contain tools and agents with their respective dependencies
 - **Agents** from `agents/` (with bundled dependencies)
 - **Connections** from `connections/` (when `WxO/Systems/<env>/Connections/.env_connection_<env>` exists, credentials are set via `orchestrate connections set-credentials`)
 
-Options: `--agents-only`, `--tools-only`, `--flows-only`, `--connections-only`, `--if-exists skip|override`, `--validate`, `--validate-with-source <env>`.  
-**Guardrails:** Requires `orchestrate`. Validates `agents/`, `tools/`, `flows/`, or `connections/` exists.
+Options: `--agents-only`, `--tools-only`, `--flows-only`, `--plugins-only`, `--connections-only`, `--all`, `--if-exists skip|override`, `--validate`, `--validate-with-source <env>`.  
+**Guardrails:** Requires `orchestrate`. Validates `agents/`, `tools/`, `flows/`, `plugins/`, or `connections/` exists.
 
 ### 3. [`export_from_wxo.sh`](export_from_wxo.sh)
 
@@ -230,9 +242,10 @@ Exports agents, tools, and flows from the active WXO environment:
 - **Agents** (with optional tool/flow dependencies)
 - **Tools** (Python, OpenAPI) → `tools/<name>/`
 - **Flows** (agentic workflows) → `flows/<name>/`
+- **Plugins** (agent_pre/post_invoke) → `plugins/<name>/`
 - **Connections** (live) → `connections/<app_id>.yml`; also creates `WxO/Systems/<System>/Connections/` with secrets report + `.env_connection_<System>` template
 
-Options: `--agents-only`, `--tools-only`, `--flows-only`, `--connections-only`, `--agent-only` (YAML only), `--agent <name>`, `--tool <name>`, `--connection <app_id>`.  
+Options: `--agents-only`, `--tools-only`, `--flows-only`, `--plugins-only`, `--connections-only`, `--agent-only` (YAML only), `--agent <name>`, `--tool <name>`, `--connection <app_id>`.  
 With `--env-name <System>`: `WxO/Exports/<System>/<DateTime>/`.  
 **Guardrails:** Requires `orchestrate`, `jq`, `unzip`. Writes formatted export report to `Report/export_report.txt`.
 
@@ -250,24 +263,35 @@ With `--env-name <System>`: `WxO/Exports/<System>/<DateTime>/`.
 │   └── <name>/                 (Python: *.py + requirements.txt; OpenAPI: skill_v2.json)
 ├── flows/
 │   └── <name>/                 (*.json flow definitions)
+├── plugins/
+│   └── <name>/                 (Python plugins: *.py + requirements.txt)
 ├── connections/
 │   └── <app_id>.yml            (live connections only)
 └── Report/
     └── export_report.txt
 ```
 
-For import, use `--base-dir <export_dir>`. The scripts validate `agents/`, `tools/`, `flows/`, or `connections/` exist.
+For import, use `--base-dir <export_dir>`. The scripts validate `agents/`, `tools/`, `flows/`, `plugins/`, or `connections/` exist.
 
 ---
 
 ## Setup
 
 ### System dependencies
-The export script (and `wxo_exporter_importer` when exporting) will try to install `unzip` and `jq` if they're not there. You can do it manually too:
+
+Run `./setup_dependencies.sh` to check dependencies, or `./setup_dependencies.sh --install` to install missing ones interactively.
+
+Manual install:
 
 ```
-sudo apt-get update -y
-sudo apt-get install -y unzip jq
+# orchestrate CLI (requires Python 3.11+)
+pip install --upgrade ibm-watsonx-orchestrate   # ADK 2.5.0+ recommended
+
+# jq, unzip (Linux)
+sudo apt-get update -y && sudo apt-get install -y unzip jq
+
+# jq (macOS)
+brew install jq
 ```
 
 ### Platform compatibility (macOS / Linux)
@@ -325,8 +349,8 @@ The script will:
 1. List environments from `orchestrate env list` — choose one, or create/add a new environment
 2. Ask: **Export** / **Import** / **Compare** / **Validate** / **Replicate**
 3. Select directory: for Export — target (existing or new under WxO/Exports); for Import — Exports or Replicate folder; for Replicate — source env, target env
-4. **Export:** Agents only, Tools only, Flows only, Connections only (live), or All; select which resources
-5. **Import:** Agents only, Tools only, Both, or Connections only; if-exists Override/Skip; optional post-import validation
+4. **Export:** Agents only, Tools only, Flows only, Plugins only, All, or Connections only (live); select which resources
+5. **Import:** Agents, Tools, Flows, Plugins, Connections, or Folder (all); if-exists Override/Skip; optional post-import validation
 6. **Compare:** Select two environments; report saved to `WxO/Compare/`
 7. **Validate:** Select agents, test prompt, optionally compare with another system
 8. **Replicate:** Select source env, target env, what to replicate (agents/tools/flows/connections); export to Replicate/ folder, import to target
@@ -348,6 +372,7 @@ The script will:
 | `--agents-only` | Import agents + their bundled tools/flows | ✓ Agent tool deps included |
 | `--tools-only` | Import tools and flows from `tools/` and `flows/` | ✗ No agents, no connections |
 | `--flows-only` | Import only flow tools from `flows/` | ✗ No connections |
+| `--plugins-only` | Import plugin tools from `plugins/` | ✗ No agents, no connections |
 | `--connections-only` | Import live connections | Use `.env_connection` for credentials |
 
 **Import dependencies:** `--tools-only` imports only tools/flows; no connections. The default import includes agents+tools+flows but not connections — use `--connections-only` for those. For tools that need connections (e.g. OpenAPI), run connections import first.
@@ -396,6 +421,7 @@ By default, this exports agents with their tools and flows, plus every tool in y
 | `--agents-only` | Agents only (optionally with deps) |
 | `--tools-only` | Tools only (Python, OpenAPI) |
 | `--flows-only` | Flow tools only → `flows/` |
+| `--plugins-only` | Plugin tools only (agent_pre/post_invoke) → `plugins/` |
 | `--connections-only` | Live connections only → `connections/<app_id>.yml` |
 | `--env-name <name>` | Structured output: `WxO/Exports/<name>/<DateTime>/` (default base: WxO) |
 | `--agent <name>` | Export only the specified agent(s); comma-separated for multiple |
@@ -414,6 +440,7 @@ chmod +x export_from_wxo.sh
 ./export_from_wxo.sh --agent-only       # YAML only
 ./export_from_wxo.sh --tools-only       # tools only
 ./export_from_wxo.sh --flows-only       # flows only
+./export_from_wxo.sh --plugins-only     # plugins only
 ./export_from_wxo.sh --connections-only # live connections only
 ./export_from_wxo.sh -o my_backup       # custom output dir
 ./export_from_wxo.sh --env-name TZ1     # WxO/Exports/TZ1/<DateTime>/
@@ -440,27 +467,28 @@ To deploy from an export directory: `./import_to_wxo.sh --base-dir WxO/Exports/T
 ./test_wxo_export_import.sh
 ```
 
-API keys: if a `.env` exists in the project root (with `WXO_API_KEY_TZ1` and `WXO_API_KEY_TZ2`), you'll be asked whether to use them. Otherwise you can enter keys at the prompt or set the env vars for non-interactive use.
+**API keys:** `.env` with `WXO_API_KEY_TZ1` and `WXO_API_KEY_TZ2`, or `../vscode-extension/.env` (mapped from `SYNC_TZ1_API_KEY`/`WO_API_KEY`). If keys are missing, you'll be prompted (interactive) or must set env vars for non-interactive/CI use.
 
 ### Full test permutations: `run_wxo_tests.sh`
 
-[`run_wxo_tests.sh`](run_wxo_tests.sh) runs all export/import permutations, validate, compare, and `import_tool_with_connection` — useful for regression testing after code changes. Output goes to `WxO/TestRun/<datetime>/`:
+[`run_wxo_tests.sh`](run_wxo_tests.sh) runs all export/import permutations, validate, compare, and `import_tool_with_connection` — useful for regression testing after orchestrate CLI upgrades (e.g. ADK 2.5.0). Output goes to `WxO/TestRun/<datetime>/`:
 
 ```bash
 ./run_wxo_tests.sh              # Full mode (all permutations)
-./run_wxo_tests.sh --quick      # Quick subset (tools export + import + validate)
+./run_wxo_tests.sh --quick      # Quick subset (tools export + import; ~2 min)
 ./run_wxo_tests.sh --list       # List test cases
 ./run_wxo_tests.sh --source TZ1 --target TZ2 --out-dir ./my_results
+./run_wxo_tests.sh --full --no-validate   # Full run, skip validate (faster)
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--quick` | Run tools export, import, validate only (faster) |
-| `--full` | All permutations: agents, tools, flows, connections, import modes, validate, compare |
+| `--quick` | Run tools export, import only (faster) |
+| `--full` | All permutations: agents, tools, flows, connections, import modes, validate, compare, News/FerryWeather replicate |
 | `--no-validate` | Skip `--validate` after imports (faster) |
 | `--out-dir <dir>` | Override output (default: `WxO/TestRun/<datetime>`) |
 
-Prerequisites: `.env` with `WXO_API_KEY_<SOURCE>`, `WXO_API_KEY_<TARGET>`; optionally `.env_connection_<SOURCE>` for tools with connections.
+**Prerequisites:** `.env` with `WXO_API_KEY_<SOURCE>`, `WXO_API_KEY_<TARGET>`. The script also loads `../vscode-extension/.env` and maps `SYNC_TZ1_API_KEY`/`WO_API_KEY` to `WXO_API_KEY_*` when present. Optionally `.env_connection_<SOURCE>` for tools with connections (News, FerryWeather).
 
 ---
 
@@ -501,6 +529,7 @@ From the main menu, choose **[4] Validate** to invoke agents with a test prompt 
 | `compare_wxo_systems.sh` | Compares agents, tools, flows between two environments |
 | `run_wxo_tests.sh` | Runs export/import permutations, validate, compare (output: `WxO/TestRun/`) |
 | `create_and_replicate_news_tool.sh` | Create News Tool (NewsAPI) in TZ1, export, replicate to TZ2 |
+| `create_and_replicate_ferry_weather_tool.sh` | Create FerryWeather tool in TZ1, export, replicate to TZ2 |
 
 ---
 

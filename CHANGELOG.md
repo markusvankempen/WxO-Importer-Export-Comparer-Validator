@@ -5,6 +5,21 @@ All notable changes to the **WxO Importer/Export/Comparer/Validator** will be do
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2026-03-01
+
+### Added
+- **Plugin export/import**: Tools with `binding.python.type` = `agent_pre_invoke` or `agent_post_invoke` are exported to `plugins/<name>/` and imported from `plugins/`. New options: `--plugins-only` (export/import), Export menu [4] Plugins, Import menu [4] Plugins, Folder (all) includes plugins.
+- **run_wxo_tests.sh**: Added `export_plugins_only` and `import_plugins_only` test cases
+- **VALIDATION_GUIDE.md**: New guide for testing TZ1 ↔ TZ2 validation
+
+### Changed
+- **.env lookup**: Scripts now look for `.env` at (in order): `watson-orchestrate-builder/.env`, `watsonx-orchestrate-devkit/.env`, `wxo-toolkit/.env`
+
+### Fixed
+- **import_to_wxo.sh**: Fixed missing `fi` for outer tools/plugins import block (syntax error)
+
+---
+
 ## [1.0.7] - 2026-02-26
 
 ### Changed

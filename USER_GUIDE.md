@@ -1,7 +1,7 @@
 # WxO Importer/Export/Comparer/Validator — End User Guide
 
-**Version:** 1.0.7 (Feb 26, 2026)  
-**Audience:** End users who want to export, import, compare, validate, or copy Watson Orchestrate (WXO) resources using the interactive CLI.
+**Version:** 1.0.8 (Mar 1, 2026)  
+**Audience:** End users who want to export, import, compare, validate, or replicate Watson Orchestrate (WXO) resources using the interactive CLI.
 
 ---
 
@@ -30,7 +30,8 @@
 
 ### Configuration
 1. Copy the example config: `cp .env.example .env`
-2. Edit `.env` with your WXO instance URLs and API keys:
+2. Place `.env` in `watson-orchestrate-builder/`, `watsonx-orchestrate-devkit/`, or `wxo-toolkit/` (scripts check in that order)
+3. Edit `.env` with your WXO instance URLs and API keys:
    - `WXO_URL_<ENV>` — instance URL (e.g. `WXO_URL_TZ1`)
    - `WXO_API_KEY_<ENV>` — API key (e.g. `WXO_API_KEY_TZ1`)
 
@@ -181,10 +182,11 @@ Choose (1-2): █
   [1] Agents only (with optional tool/flow dependencies)
   [2] Tools only
   [3] Flows only
-  [4] All — agents, tools, flows (dependencies included by default)
-  [5] Connections only (live)
+  [4] Plugins only (agent_pre/post_invoke)
+  [5] All — agents, tools, flows (dependencies included by default)
+  [6] Connections only (live)
 
-Choose (1-5): █
+Choose (1-6): █
 ```
 
 | Option | What is exported |
@@ -192,8 +194,9 @@ Choose (1-5): █
 | **1** Agents only | Agents (optionally with tool/flow dependencies) |
 | **2** Tools only | All tools (Python, OpenAPI) — excludes agents and flows |
 | **3** Flows only | Flow tools only — saved to `flows/` directory; select which flows |
-| **4** All | Agents (with deps) + all tools + all flows; dependencies included by default |
-| **5** Connections only | Live connections only — saved to `connections/<app_id>.yml`; select which connections |
+| **4** Plugins only | Plugin tools (agent_pre/post_invoke) — saved to `plugins/`; select which plugins |
+| **5** All | Agents (with deps) + all tools + all flows; dependencies included by default |
+| **6** Connections only | Live connections only — saved to `connections/<app_id>.yml`; select which connections |
 
 ### Step 5a: For Agents or Both — select agents
 
@@ -285,7 +288,7 @@ The script runs `export_from_wxo.sh` and shows progress:
 
 ## Use Case 2: Import
 
-**Goal:** Push agents, tools, flows, and connections from your local export directory into Watson Orchestrate.
+**Goal:** Push agents, tools, flows, plugins, and connections from your local export directory into Watson Orchestrate.
 
 ```mermaid
 flowchart TD
@@ -348,17 +351,18 @@ Pick the system (folder under `WxO/Exports/`) and then the specific export times
   [1] Agents (YAML only)
   [2] Tools
   [3] Flows
-  [4] Connections
+  [4] Plugins (from plugins/)
+  [5] Connections
 
   With Dependencies
-  [5] Agents (+ bundled tools/flows)
-  [6] Tools (+ bundled connections)
-  [7] Flows (+ bundled connections)
-  [8] Folder — all objects in directory
+  [6] Agents (+ bundled tools/flows)
+  [7] Tools (+ bundled connections)
+  [8] Flows (+ bundled connections)
+  [9] Folder — all objects in directory
 
   [0] Back
 
-Choose (0-8): █
+Choose (0-9): █
 ```
 
 | Option | What is imported | Dependencies |
@@ -366,13 +370,14 @@ Choose (0-8): █
 | **1** Agents (YAML only) | Agent definitions only | ✗ No bundled tools/flows |
 | **2** Tools | Tools from `tools/` | ✗ No bundled connections |
 | **3** Flows | Flow tools from `flows/` | ✗ No bundled connections |
-| **4** Connections | Live connections from `connections/` | Credentials set when `.env_connection_<Target>` exists |
-| **5** Agents (+ deps) | Agents and bundled tools/flows | ✓ From `agents/<name>/tools/` |
-| **6** Tools (+ conns) | Tools with bundled connections | ✓ From `tools/<name>/connections/` |
-| **7** Flows (+ conns) | Flows with bundled connections | ✓ From `flows/<name>/connections/`; flows can also reference tools and agents with their dependencies |
-| **8** Folder (all) | Everything in directory | ✓ Agents, tools, flows, connections |
+| **4** Plugins | Plugin tools from `plugins/` | ✗ No bundled connections |
+| **5** Connections | Live connections from `connections/` | Credentials set when `.env_connection_<Target>` exists |
+| **6** Agents (+ deps) | Agents and bundled tools/flows | ✓ From `agents/<name>/tools/` |
+| **7** Tools (+ conns) | Tools with bundled connections | ✓ From `tools/<name>/connections/` |
+| **8** Flows (+ conns) | Flows with bundled connections | ✓ From `flows/<name>/connections/`; flows can also reference tools and agents with their dependencies |
+| **9** Folder (all) | Everything in directory | ✓ Agents, tools, flows, plugins, connections |
 
-**Import dependencies:** Options [6] and [7] import connections bundled with tools/flows. Option [8] imports all objects that exist in the folder. **Replicate** uses `.env_connection_<Source>` (e.g. TZ1) for credentials — fill in that file; no `Systems/<Source>_to_<Target>/` folder is created.
+**Import dependencies:** Options [7] and [8] import connections bundled with tools/flows. Option [9] imports all objects that exist in the folder (agents, tools, flows, plugins, connections). **Replicate** uses `.env_connection_<Source>` (e.g. TZ1) for credentials — fill in that file; no `Systems/<Source>_to_<Target>/` folder is created.
 
 **Connection assignment:** The import uses the `app_id` from bundled connection YAMLs (`tools/<name>/connections/*.yaml` or `flows/<name>/connections/*.yaml`), which come from the source system export. This preserves the same tool-to-connection assignment you had in the source.
 
@@ -390,7 +395,7 @@ Choose (0-2): █
 - **Override** — Replace existing agents/tools with imported version.
 - **Skip** — Do not import if name already exists; useful for incremental updates.
 
-### Step 6: Validate after import? (Agents or Both)
+### Step 6: Validate after import? (Agents or Folder)
 
 ```
   Validate imported agents after import? (orchestrate CLI invokes agents only, not flows/tools)
@@ -621,8 +626,9 @@ flowchart TB
             E1["agents/"]
             E2["tools/"]
             E3["flows/"]
-            E4["connections/"]
-            E5["Report/export_report.txt"]
+            E4["plugins/"]
+            E5["connections/"]
+            E6["Report/export_report.txt"]
         end
         subgraph Imports["Imports/TargetEnv/DateTime/"]
             I1["Report/import_report.txt"]
@@ -660,6 +666,8 @@ WxO/
 │           │   └── <tool_name>/
 │           ├── flows/
 │           │   └── <flow_name>/
+│           ├── plugins/
+│           │   └── <plugin_name>/
 │           ├── connections/
 │           │   └── <app_id>.yml
 │           └── Report/
@@ -700,12 +708,17 @@ WxO/
 
 ## Import dependencies
 
-| Option | Agents | Tools/Flows | Agent tool deps | Connections |
+| Option | Agents | Tools/Flows/Plugins | Agent tool deps | Connections |
 |--------|--------|-------------|-----------------|-------------|
 | [1] Agents only | ✓ | from agents/ | ✓ | ✗ |
-| [2] Tools and flows | ✗ | ✓ | ✗ | ✗ |
-| [3] All | ✓ | ✓ | ✓ | ✗ |
-| [4] Connections only | ✗ | ✗ | ✗ | ✓ |
+| [2] Tools | ✗ | tools/ | ✗ | ✗ |
+| [3] Flows | ✗ | flows/ | ✗ | ✗ |
+| [4] Plugins | ✗ | plugins/ | ✗ | ✗ |
+| [5] Connections only | ✗ | ✗ | ✗ | ✓ |
+| [6] Agents (+ deps) | ✓ | ✓ | ✓ | ✗ |
+| [7] Tools (+ conns) | ✗ | ✓ | ✗ | ✓ |
+| [8] Flows (+ conns) | ✗ | ✓ | ✗ | ✓ |
+| [9] Folder (all) | ✓ | ✓ | ✓ | ✓ |
 
 **Tools that need connections** (e.g. OpenAPI/Weather API): Tool imports now **auto-import connections** from `tools/<name>/connections/*.yaml`. Add credentials to `.env_connection_<Target>` (e.g. `CONN_WeatherAPI_API_KEY=...`).
 
@@ -739,6 +752,7 @@ To confirm a tool’s connection was imported and has credentials:
 | **"No agents/, tools/, flows/, or connections/"** | Ensure the selected directory contains at least one of these subdirs |
 | **API key prompt** | Add `WXO_API_KEY_<ENV>` to `.env` for each environment |
 | **Debug logging** | Set `WXO_DEBUG=1` in `.env` — logs to `WxO/logs/wxo_debug_YYYYMMDD.log` |
+| **Python tool: "No module named 'X.X'; 'X' is not a package"** | The import script auto-fixes this: when the `.py` file has the same name as the tool dir (e.g. `dad_joke_plugin/dad_joke_plugin.py`), it prefers or creates `<name>_tool.py`. For a persistent fix in exports, rename the main file to `<name>_tool.py` (e.g. `format_address_tool.py`). |
 
 ---
 
@@ -750,12 +764,14 @@ For scripting or CI, you can call the underlying scripts directly:
 # Export
 ./export_from_wxo.sh --env-name TZ1
 ./export_from_wxo.sh --flows-only --env-name TZ1
+./export_from_wxo.sh --plugins-only --env-name TZ1
 ./export_from_wxo.sh --connections-only --env-name TZ1
 ./export_from_wxo.sh --agents-only --agent MyAgent
 
 # Import
 ./import_to_wxo.sh --base-dir WxO/Exports/TZ1/20260225_113133 --env TZ2
 ./import_to_wxo.sh --flows-only --base-dir WxO/Exports/TZ1/20260225_113133
+./import_to_wxo.sh --plugins-only --base-dir WxO/Exports/TZ1/20260225_113133 --env TZ2
 ./import_to_wxo.sh --connections-only --base-dir WxO/Exports/TZ1/20260225_113133 --env TZ2
 ./import_to_wxo.sh --if-exists skip
 
